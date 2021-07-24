@@ -32,8 +32,11 @@ def calcGeneralSolutionOfTemperature(thermal_param):
 
     # sympy 1.1.1 do not support ics
     ans = sympy.dsolve(eq)
-    return (ans[0].rhs, ans[1].rhs)
-
+    sympy.var("Tcoil0 Thousing0")
+    sympy.var("C1 C2")
+    dic = sympy.solve([sympy.Eq(ans[0].rhs.subs([(t,0)]),Tcoil0),sympy.Eq(ans[1].rhs.subs([(t,0)]),Thousing0)],[C1,C2])
+    return (ans[0].rhs.subs([( C1, dic[C1] ), (C2, dic[C2] )]),
+            ans[1].rhs.subs([( C1, dic[C1] ), (C2, dic[C2] )]))
 
 def calcSpecialSolutionOfTemperature(thermal_param, Tcoil_general, Thousing_general, Tair_current, Tcoil_current, Thousing_current):
     # thermal_param: MotorThermalParamConfig
@@ -44,16 +47,12 @@ def calcSpecialSolutionOfTemperature(thermal_param, Tcoil_general, Thousing_gene
     # Thousing_current: Current temperature of housing [degree]
     # return: (Tcoil, Thousing)
 
-    sympy.var("C1 C2")
-    t = sympy.Symbol("t")
-    dic = sympy.solve([sympy.Eq(Tcoil_general.subs([(Tair, Tair_current), (t,0)]),Tcoil_current),sympy.Eq(Thousing_general.subs([(Tair, Tair_current), (t,0)]),Thousing_current)],[C1,C2])
-    return (Tcoil_general.subs([(Tair, Tair_current), ( C1, dic[C1] ), (C2, dic[C2] )]),
-            Thousing_general.subs([(Tair, Tair_current), ( C1, dic[C1] ), (C2, dic[C2] )]))
+    return (Tcoil_general.subs([(Tair, Tair_current), (Tcoil0, Tcoil_current ),(Thousing0, Thousing_current )]),
+            Thousing_general.subs([(Tair, Tair_current), (Tcoil0, Tcoil_current ),(Thousing0, Thousing_current )]))
 
 def calcMaxTorqueAccurate(thermal_param, T_special, safe_time):
     t = sympy.Symbol("t")
-    print(thermal_param["Tlimit"])
-    taus = sympy.solve(sympy.Eq(T_special.subs( [ (t, safe_time) ]), thermal_param["Tlimit"]), tau)
+    taus = sympy.solve(sympy.Eq(T_special.subs( [ (t, safe_time) ]), thermal_param["Tlimit"]), tau, rational=False) # rational=False: for speed up
     if not taus:
         return 0.0
     valid_taus = []
@@ -97,7 +96,7 @@ def calcRemainingTimeFast(thermal_param, T_special, tau_current):
     if T_special.subs([ (t, 0.0), (tau, 0.0) ]) >= thermal_param["Tlimit"]:
         return 0.0
 
-    T_special = sympy.simplify(T_special.subs([(tau, tau_current)]))
+    T_special = T_special.subs([(tau, tau_current)])
     for time in range(0, 300, 10):
         if T_special.subs([(t, time)]) > thermal_param["Tlimit"]:
             return time

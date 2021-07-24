@@ -37,7 +37,7 @@ class EffortEstimator():
         rospy.Subscriber("~housing", JointFloat64State, self.housingTemperatureCallback)
         self.effortPub = rospy.Publisher('~effort', JointFloat64State, queue_size=10)
         self.seq = 0
-        rospy.Timer(rospy.Duration(2), self.timerCallback)
+        rospy.Timer(rospy.Duration(10), self.timerCallback)
 
     def configCallback(self, config, joint_name):
         self.estimators[joint_name]["Tcoil_general"], self.estimators[joint_name]["Thousing_general"] = estimator.calcGeneralSolutionOfTemperature(config)
@@ -75,7 +75,6 @@ class EffortEstimator():
         effortMsg.header.seq = self.seq
         effortMsg.header.stamp = rospy.Time.now()
         for joint_name in self.estimators.keys():
-            print joint_name
             est = self.estimators[joint_name]
             Tcoil, Thousing = estimator.calcSpecialSolutionOfTemperature(thermal_param = est["server"].config,
                                                                          Tcoil_general = est["Tcoil_general"],
@@ -83,7 +82,6 @@ class EffortEstimator():
                                                                          Thousing_current = est["Thousing"],
                                                                          Tcoil_current = est["Tcoil"],
                                                                          Tair_current = 25.0)
-            print joint_name
             effort = estimator.calcMaxTorqueAccurate(thermal_param = est["server"].config,
                                                    T_special = Tcoil,
                                                    safe_time = 100.0)

@@ -76,12 +76,14 @@ class TimeEstimator():
         timeMsg.header.stamp = rospy.Time.now()
         for joint_name in self.estimators.keys():
             est = self.estimators[joint_name]
+            print joint_name
             Tcoil, Thousing = estimator.calcSpecialSolutionOfTemperature(thermal_param = est["server"].config,
                                                                          Tcoil_general = est["Tcoil_general"],
                                                                          Thousing_general = est["Thousing_general"],
                                                                          Thousing_current = est["Thousing"],
                                                                          Tcoil_current = est["Tcoil"],
                                                                          Tair_current = 25.0)
+            print joint_name
             time = estimator.calcRemainingTimeFast(thermal_param = est["server"].config,
                                                    T_special = Tcoil,
                                                    tau_current = est["tau"])
