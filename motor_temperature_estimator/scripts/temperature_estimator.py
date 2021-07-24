@@ -15,12 +15,20 @@ class MotorTemperatureEstimator():
         urdf = URDF().parse(rospy.get_param("robot_description"))
         self.estimators = {}
         for joint_name in urdf.joint_map.keys():
-            self.estimators[joint_name] = {"server" : Server(type=MotorThermalParamConfig,
-                                                             callback=lambda config, level: config,
-                                                             namespace="~"+joint_name),
+            server = Server(type=MotorThermalParamConfig,
+                            callback=lambda config, level: config,
+                            namespace="~"+joint_name)
+            new_config = {}
+            for param_name in server.config:
+                if rospy.has_param("~" + joint_name + "/" + param_name):
+                    new_config[param_name] = rospy.get_param("~" + joint_name + "/" + param_name)
+            server.update_configuration(new_config)
+
+            self.estimators[joint_name] = {"server" : server,
                                            "Tcoil" : 25.0,
                                            "Thousing" : 25.0,
                                            "last_update" : rospy.Time.now()}
+
         rospy.Subscriber("joint_states", JointState, self.jointStateCallback)
         self.pub = rospy.Publisher('~output', MotorTemperature, queue_size=10)
         self.seq = 0
