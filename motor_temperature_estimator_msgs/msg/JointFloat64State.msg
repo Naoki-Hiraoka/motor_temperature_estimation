@@ -3,5 +3,4 @@ std_msgs/Header header
   time stamp
   string frame_id
 string[] name
-float64[] coil
-float64[] housing
+float64[] data

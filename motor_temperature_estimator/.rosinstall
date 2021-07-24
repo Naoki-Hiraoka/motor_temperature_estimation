@@ -1,0 +1,8 @@
+- git:
+    local-name: Naoki-Hiraoka/motor_temperature_estimation
+    uri: https://github.com/Naoki-Hiraoka/motor_temperature_estimation.git
+
+# for sample code
+- git:
+    local-name: Naoki-Hiraoka/topic_filters.git
+    uri: https://github.com/Naoki-Hiraoka/topic_filters.git

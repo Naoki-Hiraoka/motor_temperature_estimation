@@ -1,0 +1,26 @@
+<launch>
+  <node pkg="motor_temperature_estimator" type="temperature_estimator.py" name="temperature_estimator"/>
+
+  <node pkg="firstorder_lowpass_filter" type="jointstates_filter" name="joint_states_filter">
+    <remap from="~input" to="/joint_states"/>
+    <rosparam>
+      rate: 250
+      position_cutoff_freq: 1.0
+      velocity_cutoff_freq: 1.0
+      effort_cutoff_freq: 1.0
+    </rosparam>
+  </node>
+
+  <node pkg="motor_temperature_estimator" type="time_estimator.py" name="time_estimator">
+    <remap from="~coil" to="temperature_estimator/coil"/>
+    <remap from="~housing" to="temperature_estimator/housing"/>
+    <remap from="joint_states" to="/joint_states_filter/output"/>
+  </node>
+
+  <node pkg="motor_temperature_estimator" type="effort_estimator.py" name="effort_estimator">
+    <remap from="~coil" to="temperature_estimator/coil"/>
+    <remap from="~housing" to="temperature_estimator/housing"/>
+    <remap from="joint_states" to="/joint_states_filter/output"/>
+  </node>
+
+</launch>

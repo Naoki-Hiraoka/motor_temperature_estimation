@@ -5,16 +5,17 @@ import rospy
 from dynamic_reconfigure.server import Server
 from urdf_parser_py.urdf import *
 from sensor_msgs.msg import JointState
-from motor_temperature_estimator_msgs.msg import MotorTemperature
+from motor_temperature_estimator_msgs.msg import JointFloat64State
 from motor_temperature_estimator_msgs.cfg import MotorThermalParamConfig
 from motor_temperature_estimator import estimator
 
-
-class MotorTemperatureEstimator():
+class TemperatureEstimator():
     def __init__(self):
         urdf = URDF().parse(rospy.get_param("robot_description"))
         self.estimators = {}
         for joint_name in urdf.joint_map.keys():
+            if urdf.joint_map[joint_name].joint_type == 'fixed':
+                continue
             server = Server(type=MotorThermalParamConfig,
                             callback=lambda config, level: config,
                             namespace="~"+joint_name)
@@ -30,7 +31,8 @@ class MotorTemperatureEstimator():
                                            "last_update" : rospy.Time.now()}
 
         rospy.Subscriber("joint_states", JointState, self.jointStateCallback)
-        self.pub = rospy.Publisher('~output', MotorTemperature, queue_size=10)
+        self.coilPub = rospy.Publisher('~coil', JointFloat64State, queue_size=10)
+        self.housingPub = rospy.Publisher('~housing', JointFloat64State, queue_size=10)
         self.seq = 0
         rospy.Timer(rospy.Duration(1.0/50), self.timerCallback)
 
@@ -51,18 +53,22 @@ class MotorTemperatureEstimator():
             est["last_update"] = msg.header.stamp
 
     def timerCallback(self,event):
-        msg = MotorTemperature()
-        msg.header.seq = self.seq
-        msg.header.stamp = rospy.Time.now()
+        coilMsg = JointFloat64State()
+        coilMsg.header.seq = self.seq
+        coilMsg.header.stamp = rospy.Time.now()
+        housingMsg = JointFloat64State()
+        housingMsg.header = coilMsg.header
         for joint_name in self.estimators.keys():
             est = self.estimators[joint_name]
-            msg.name.append(joint_name)
-            msg.coil.append(est["Tcoil"])
-            msg.housing.append(est["Thousing"])
-        self.pub.publish(msg)
+            coilMsg.name.append(joint_name)
+            coilMsg.data.append(est["Tcoil"])
+            housingMsg.name.append(joint_name)
+            housingMsg.data.append(est["Thousing"])
+        self.coilPub.publish(coilMsg)
+        self.housingPub.publish(housingMsg)
         self.seq += 1
 
 if __name__ == "__main__":
     rospy.init_node("temperature_estimator")
-    worker = MotorTemperatureEstimator()
+    worker = TemperatureEstimator()
     rospy.spin()
